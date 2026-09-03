@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: isplexuptodate
+  namespace: monitoring
+spec:
+  schedule: "0 8 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: isplexuptodate
+            image: ghcr.io/mainmain-rl/isplexuptodate:latest
+            env:
+            - name: PLEX_URL
+              value: "http://plex.media.svc.cluster.local:32400"
+            - name: GATUS_URL
+              value: "http://gatus.monitoring.svc.cluster.local:8080/api/v1/endpoints/GROUP_my-incredible-endpoint/external"
+            - name: GATUS_APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: gatus-isplexuptodate-secret
+                  key: token
