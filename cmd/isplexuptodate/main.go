@@ -21,14 +21,17 @@ func main() {
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	localVersion, err := plex.GetLocalPlexVersion(client, plexURL)
-	log.Printf("Local version: %v", localVersion)
+	localVersion, machineIdentifier, err := plex.GetLocalPlexVersion(client, plexURL)
+	log.Print("Is Plex Up To Date ?")
+	log.Printf("Plex URL: %v", plexURL)
+	log.Printf("Plex machineIdentifier: %v", machineIdentifier)
+	log.Printf("Plex local version: %v", localVersion)
 	if err != nil {
 		log.Fatalf("Error getting local version: %v", err)
 	}
 
 	latestVersion, err := plex.GetLatestPlexVersion(client)
-	log.Printf("Latest version: %v", latestVersion)
+	log.Printf("Plex latest version: %v", latestVersion)
 	if err != nil {
 		log.Fatalf("Error when getting the latest version : %v", err)
 	}
@@ -38,6 +41,6 @@ func main() {
 		log.Println(errMsg)
 		discord.SendDiscordNotification(client, discordWebhookURL, "Plex Update Available", errMsg)
 	} else {
-		log.Printf("Plex is up to date (version %s)", localVersion)
+		log.Printf("Plex is up to date ! (version %s)", localVersion)
 	}
 }
