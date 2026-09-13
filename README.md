@@ -1,46 +1,42 @@
 # IsPlexUpToDate
 
-Compares the running Plex Media Server version against the latest version published by Plex, and reports the result to a Gatus external endpoint. Meant to run as a Kubernetes `CronJob`.
+Compares the running Plex Media Server version against the latest version published by Plex, and if the Plex instance need to be updated the result is pushed to Discord. Meant to run as a Kubernetes `CronJob`.
 
 ## How it works
 
 1. `GET {PLEX_URL}/identity` (with `Accept: application/json`) to get the local version.
 2. `GET https://plex.tv/api/downloads/5.json` to get the latest public version (Linux, first item in `computer.Linux.releases`).
 3. Compares both versions.
-4. `POST {GATUS_URL}?success=...&error=...` with `Authorization: Bearer {GATUS_APIKEY}`.
-
-If either version can't be fetched, the check fails immediately (`log.Fatal`, exit code 1) after attempting to report the failure to Gatus. An available update is **not** treated as a process error: the program exits normally (exit 0), the `success=false` status and message are carried by Gatus.
+4. `POST {DISCORD_WEBHOOK_URL}`.
 
 ## Configuration
 
 | Variable | Example | Description |
 |---|---|---|
 | `PLEX_URL` | `http://plex.media.svc.cluster.local:32400` | Plex server base URL (without `/identity`) |
-| `GATUS_URL` | `http://gatus.monitoring.svc.cluster.local:8080/api/v1/endpoints/xxxxx/external` | Full URL of the Gatus external endpoint |
-| `GATUS_APIKEY` | `PZUFRZ7Zozryfgou` | Token sent in the `Authorization: Bearer` header |
+| `DISCORD_WEBHOOK_URL` | `https://discord.com/api/webhooks/...` | Discord webhook URL for notifications (optional) |
 
-All three are required — the program exits early otherwise (`Missing Env variables.`).
+All required variables are required — the program exits early otherwise (`Missing Env variables.`).
 
 ## Build
 
 ```bash
-go build -o isplexuptodate .
+go build -o isplexuptodate ./cmd/isplexuptodate
 ```
 
-Docker image: see `Dockerfile` (multi-stage, multi-arch amd64/arm64, code expected under `./src`).
+Docker image: see `Dockerfile` (multi-stage, multi-arch amd64/arm64, code expected under `./cmd` and `./internal`).
 
 ## Run
 
 ```bash
 PLEX_URL=http://plex.media.svc:32400 \
-GATUS_URL=http://gatus.monitoring.svc:8080/api/v1/endpoints/xxxxx/external \
-GATUS_APIKEY=PZUFRZ7Zozryfgou \
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/... \
 ./isplexuptodate
 ```
 
 ## Deployment
 
-Meant to run as a Kubernetes `CronJob`, with `GATUS_APIKEY` stored in a `Secret` rather than hardcoded in the manifest.
+Meant to run as a Kubernetes `CronJob`, with `DISCORD_WEBHOOK_URL` stored in a `Secret` rather than hardcoded in the manifest.
 
 ## Known limitations
 
