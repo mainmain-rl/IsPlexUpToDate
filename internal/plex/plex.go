@@ -2,44 +2,42 @@ package plex
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
 type PlexServerIdentity struct {
 	MediaContainer struct {
-		Version string `json:"version"`
+		Version           string `json:"version"`
+		MachineIdentifier string `json:"machineIdentifier"`
 	} `json:"MediaContainer"`
 }
 
 type PlexDownloads struct {
 	Computer struct {
 		Linux struct {
-			Releases []struct {
-				Version string `json:"version"`
-			} `json:"releases"`
+			Version string `json:"version"`
 		} `json:"Linux"`
 	} `json:"computer"`
 }
 
-func GetLocalPlexVersion(client *http.Client, plexURL string) (string, error) {
+func GetLocalPlexVersion(client *http.Client, plexURL string) (string, string, error) {
 	req, err := http.NewRequest("GET", plexURL+"/identity", nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	var data PlexServerIdentity
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return "", err
+		return "", "", err
 	}
-	return data.MediaContainer.Version, nil
+	return data.MediaContainer.Version, data.MediaContainer.MachineIdentifier, nil
 }
 
 func GetLatestPlexVersion(client *http.Client) (string, error) {
@@ -55,10 +53,5 @@ func GetLatestPlexVersion(client *http.Client) (string, error) {
 		return "", err
 	}
 
-	releases := data.Computer.Linux.Releases
-	if len(releases) == 0 {
-		return "", fmt.Errorf("No version found in the Plex API")
-	}
-
-	return releases[0].Version, nil
+	return data.Computer.Linux.Version, nil
 }
